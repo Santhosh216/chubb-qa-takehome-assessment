@@ -35,7 +35,7 @@ export default defineConfig({
       ? 'npm run build && npm run start -- --port 3001'
       : 'npm run dev -- --port 3001',
     url: 'http://localhost:3001',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });

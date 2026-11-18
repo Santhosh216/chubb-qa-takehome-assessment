@@ -117,4 +117,65 @@ class ClaimsControllerTest {
         mockMvc.perform(get("/api/claims"))
                 .andExpect(status().isUnauthorized());
     }
+    @Test
+    @WithMockUser
+    void should_Return400_When_IncidentDateMissing() throws Exception {
+        assertInvalidClaimRequest("""
+                {
+                    "incidentLocation": "London, UK",
+                    "description": "Car accident damage",
+                    "claimAmount": 1500.00
+                }
+                """);
+    }
+
+    @Test
+    @WithMockUser
+    void should_Return400_When_IncidentLocationTooShort() throws Exception {
+        assertInvalidClaimRequest("""
+                {
+                    "incidentDate": "2024-01-15",
+                    "incidentLocation": "ABC",
+                    "description": "Car accident damage",
+                    "claimAmount": 1500.00
+                }
+                """);
+    }
+
+    @Test
+    @WithMockUser
+    void should_Return400_When_DescriptionTooShort() throws Exception {
+        assertInvalidClaimRequest("""
+                {
+                    "incidentDate": "2024-01-15",
+                    "incidentLocation": "London, UK",
+                    "description": "Short",
+                    "claimAmount": 1500.00
+                }
+                """);
+    }
+
+    @Test
+    @WithMockUser
+    void should_Return400_When_ClaimAmountZero() throws Exception {
+        assertInvalidClaimRequest("""
+                {
+                    "incidentDate": "2024-01-15",
+                    "incidentLocation": "London, UK",
+                    "description": "Car accident damage",
+                    "claimAmount": 0
+                }
+                """);
+    }
+
+    private void assertInvalidClaimRequest(String requestBody) throws Exception {
+        mockMvc.perform(post("/api/claims")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        org.mockito.Mockito.verifyNoInteractions(claimsServicePort);
+    }
 }
+

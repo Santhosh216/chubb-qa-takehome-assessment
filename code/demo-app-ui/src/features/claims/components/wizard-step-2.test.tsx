@@ -1,8 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WizardStep2 } from './wizard-step-2';
 import { useClaimWizardStore } from '../stores/use-claim-wizard-store';
+import { wait } from '@testing-library/user-event/dist/cjs/utils/misc/wait.js';
+
 
 vi.mock('../stores/use-claim-wizard-store', () => ({
   useClaimWizardStore: vi.fn(),
@@ -105,30 +107,37 @@ describe('WizardStep2', () => {
     });
 
     it('should show primary color when approaching maximum', async () => {
-      const user = userEvent.setup();
       render(<WizardStep2 />);
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
-
       const longText = 'a'.repeat(950);
-      await user.type(textarea, longText);
+
+      fireEvent.change(textarea, {
+        target: { value: longText },
+      });
 
       await waitFor(() => {
+        expect(textarea).toHaveValue(longText);
+
         const counter = screen.getByText('950/1000');
         expect(counter).toHaveClass('text-primary');
       });
     });
 
     it('should show muted color when character count is valid', async () => {
-      const user = userEvent.setup();
-      render(<WizardStep2 />);
+    render(<WizardStep2 />);
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
+      const description = 'This is a valid description with sufficient length';
 
-      await user.type(textarea, 'This is a valid description with sufficient length');
+      fireEvent.change(textarea, {
+        target: { value: description },
+      });
 
       await waitFor(() => {
-        const counter = screen.getByText('50/1000');
+        expect(textarea).toHaveValue(description);
+
+        const counter = screen.getByText(`${description.length}/1000`);
         expect(counter).toHaveClass('text-text-muted');
       });
     });
@@ -148,16 +157,22 @@ describe('WizardStep2', () => {
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
 
-      await user.type(textarea, 'Short');
+      fireEvent.change(textarea, {
+        target: { value: 'Short' },
+      });
+
       await user.tab();
 
       await waitFor(() => {
+        expect(textarea).toHaveValue('Short');
+
         expect(
           screen.getByText(/Description must be at least 10 characters/i)
         ).toBeInTheDocument();
+
+        expect(screen.getByRole('button', { name: /Next/i })).toBeDisabled();
       });
     });
-
     it('should prevent description longer than 1000 characters via maxLength attribute', () => {
       render(<WizardStep2 />);
 
@@ -245,32 +260,36 @@ describe('WizardStep2', () => {
       expect(mockPreviousStep).toHaveBeenCalled();
     });
 
-    it('should call updateFormData and nextStep when form is valid and Next is clicked', async () => {
-      const user = userEvent.setup();
-      render(<WizardStep2 />);
+  it('should call updateFormData and nextStep when form is valid and Next is clicked', async () => {
+    const user = userEvent.setup();
+    render(<WizardStep2 />);
 
-      const textarea = screen.getByLabelText(/Describe what happened/i);
+    const textarea = screen.getByLabelText(/Describe what happened/i);
+    const description = 'This is a valid and detailed description of the incident';
 
-      await user.type(
-        textarea,
-        'This is a valid and detailed description of the incident'
-      );
-
-      await waitFor(() => {
-        const nextButton = screen.getByRole('button', { name: /Next/i });
-        expect(nextButton).toBeEnabled();
-      });
-
-      const nextButton = screen.getByRole('button', { name: /Next/i });
-      await user.click(nextButton);
-
-      await waitFor(() => {
-        expect(mockUpdateFormData).toHaveBeenCalledWith({
-          description: 'This is a valid and detailed description of the incident',
-        });
-        expect(mockNextStep).toHaveBeenCalled();
-      });
+    fireEvent.change(textarea, {
+      target: { value: description },
     });
+
+    expect(textarea).toHaveValue(description);
+
+    const nextButton = screen.getByRole('button', { name: /Next/i });
+
+    await waitFor(() => {
+      expect(nextButton).toBeEnabled();
+    });
+
+    await user.click(nextButton);
+
+    await waitFor(() => {
+      expect(mockUpdateFormData).toHaveBeenCalledWith({
+        description,
+      });
+
+      expect(mockNextStep).toHaveBeenCalledTimes(1);
+    });
+  });
+
   });
 
   describe('Accessibility', () => {
@@ -280,7 +299,12 @@ describe('WizardStep2', () => {
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
 
-      await user.type(textarea, 'Short');
+      fireEvent.change(textarea, {
+        target: { value: 'Short' },
+      });
+
+      expect(textarea).toHaveValue('Short');
+
       await user.tab();
 
       await waitFor(() => {
@@ -294,7 +318,12 @@ describe('WizardStep2', () => {
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
 
-      await user.type(textarea, 'Short');
+      fireEvent.change(textarea, {
+        target: { value: 'Short' },
+      });
+
+      expect(textarea).toHaveValue('Short');
+
       await user.tab();
 
       await waitFor(() => {
@@ -310,7 +339,12 @@ describe('WizardStep2', () => {
 
       const textarea = screen.getByLabelText(/Describe what happened/i);
 
-      await user.type(textarea, 'Short');
+      fireEvent.change(textarea, {
+        target: { value: 'Short' },
+      });
+
+      expect(textarea).toHaveValue('Short');
+
       await user.tab();
 
       await waitFor(() => {
@@ -371,3 +405,4 @@ describe('WizardStep2', () => {
     });
   });
 });
+
