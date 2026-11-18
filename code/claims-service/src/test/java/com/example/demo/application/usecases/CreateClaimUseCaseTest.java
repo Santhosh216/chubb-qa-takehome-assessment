@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -41,6 +42,9 @@ class CreateClaimUseCaseTest {
 
     @Mock
     private Counter mockCounter;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private CreateClaimUseCase useCase;
@@ -97,8 +101,12 @@ class CreateClaimUseCaseTest {
     @Test
     void should_PublishClaimSubmittedEvent_When_ClaimCreated() {
         UUID userId = UUID.randomUUID();
-        when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.of(mock(User.class)));
-        when(claimRepository.save(any(Claim.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(userRepository.findById(UserId.of(userId)))
+                .thenReturn(Optional.of(mock(User.class)));
+
+        when(claimRepository.save(any(Claim.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateClaimCommand command = ClaimTestBuilder.aClaim()
                 .withUserId(userId)
@@ -108,9 +116,13 @@ class CreateClaimUseCaseTest {
 
         Claim result = useCase.execute(command);
 
-        assertThat(result.getDomainEvents()).isNotEmpty();
-        assertThat(result.getDomainEvents())
-                .anyMatch(event -> event.getClass().getSimpleName().equals("ClaimSubmitted"));
+        assertThat(result).isNotNull();
+
+        verify(eventPublisher).publishEvent(
+                any(com.example.demo.domain.claim.events.ClaimSubmitted.class)
+        );
+
+        assertThat(result.getDomainEvents()).isEmpty();
     }
 
     @Test
